@@ -252,6 +252,165 @@ public void cleanup() {
 - **Lifecycle management**: Spring handles creation, initialization, and destruction
 - **Loose coupling**: Components depend on interfaces, not implementations
 
+## OpenAPI with Spring Boot
+
+### What is OpenAPI?
+OpenAPI (formerly Swagger) is a specification for documenting REST APIs. It provides a standard way to describe API endpoints, request/response formats, and authentication.
+
+### How It Integrates with Spring Boot
+
+#### 1. Add Dependencies
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.0.0</version>
+</dependency>
+```
+
+#### 2. Create REST Controller with OpenAPI Documentation
+```java
+@RestController
+@RequestMapping("/api/employees")
+@Tag(name = "Employee Management", description = "APIs for managing employees and skills")
+public class EmployeeController {
+    
+    private final Employee employee;
+    
+    public EmployeeController(Employee employee) {
+        this.employee = employee;
+    }
+    
+    @GetMapping("/work")
+    @Operation(summary = "Get employee work output", description = "Returns what the employee is working on with their skills")
+    @ApiResponse(responseCode = "200", description = "Successful operation")
+    public ResponseEntity<String> getWorkOutput() {
+        // Capture the work output and return as JSON
+        return ResponseEntity.ok("Employee is working with injected skills");
+    }
+    
+    @GetMapping("/skills")
+    @Operation(summary = "Get employee skills", description = "Returns list of skills available to the employee")
+    @ApiResponse(responseCode = "200", description = "List of skills retrieved successfully")
+    public ResponseEntity<List<SkillInfo>> getSkills() {
+        List<SkillInfo> skills = employee.getSkills().stream()
+            .map(skill -> new SkillInfo(skill.getName()))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(skills);
+    }
+}
+```
+
+#### 3. Configure OpenAPI
+```java
+@Configuration
+public class OpenApiConfig {
+    
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+            .info(new Info()
+                .title("Employee Skills API")
+                .version("1.0")
+                .description("API demonstrating dependency injection with employee skills"))
+            .externalDocs(new ExternalDocumentation()
+                .description("Spring Boot Documentation")
+                .url("https://spring.io/projects/spring-boot"));
+    }
+}
+```
+
+#### 4. Enhanced Employee Class for API
+```java
+@Component
+public class Employee {
+    private final List<Skill> skills;
+    
+    public Employee(List<Skill> skills) {
+        this.skills = skills;
+    }
+    
+    // Make skills accessible for API
+    public List<Skill> getSkills() {
+        return skills;
+    }
+    
+    public void work() {
+        System.out.println("Employee is working with injected skills:");
+        for (Skill skill : skills) {
+            System.out.println("- Using skill: " + skill.getName());
+            skill.perform();
+        }
+    }
+}
+
+// DTO for API response
+public record SkillInfo(String name) {}
+```
+
+### Benefits of OpenAPI Integration
+
+#### 1. **Automatic Documentation**
+```java
+// OpenAPI automatically generates docs from annotations
+@Operation(summary = "Get employee skills")
+@GetMapping("/skills")
+public List<SkillInfo> getSkills() { ... }
+```
+
+#### 2. **Interactive UI**
+- Access at `http://localhost:8080/swagger-ui.html`
+- Test API endpoints directly in browser
+- View request/response schemas
+
+#### 3. **Client Generation**
+- Generate client SDKs in multiple languages
+- Automatic type safety for API consumers
+- Reduced integration errors
+
+#### 4. **API Validation**
+- Validate request/response formats
+- Ensure API contract compliance
+- Automated testing capabilities
+
+### Complete Flow with OpenAPI
+
+```
+1. Spring Boot starts with dependency injection
+   ↓
+2. Employee bean created with injected skills
+   ↓
+3. REST controller created with Employee dependency
+   ↓
+4. OpenAPI scans annotations and generates documentation
+   ↓
+5. API endpoints available at /api/employees/*
+   ↓
+6. Documentation available at /swagger-ui.html
+```
+
+### Example API Endpoints
+
+```bash
+# Get employee work output
+GET http://localhost:8080/api/employees/work
+
+# Get employee skills
+GET http://localhost:8080/api/employees/skills
+
+# OpenAPI Documentation
+GET http://localhost:8080/swagger-ui.html
+```
+
+### Key Advantages
+
+1. **Living Documentation**: Docs always match actual API
+2. **Developer Friendly**: Interactive testing interface
+3. **Standardized**: Industry-standard API specification
+4. **Tool Integration**: Works with many API tools and clients
+
+This demonstrates how OpenAPI complements Spring Boot's dependency injection by providing excellent API documentation and testing capabilities for your services.
+
 ## Real-World Benefits
 
 1. **Maintainability**: Easy to modify and extend
